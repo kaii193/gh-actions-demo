@@ -4,6 +4,7 @@ exports.CreatePostDto = void 0;
 class CreatePostDto {
     title;
     content;
+    author;
     published;
 }
 exports.CreatePostDto = CreatePostDto;

@@ -1,1 +1,1 @@
-{"version":3,"file":"create-post.dto.js","sourceRoot":"","sources":["../../../../src/posts/dto/create-post.dto.ts"],"names":[],"mappings":";;;AAAA,MAAa,aAAa;IACxB,KAAK,CAAS;IACd,OAAO,CAAU;IACjB,SAAS,CAAW;CACrB;AAJD,sCAIC"}
+{"version":3,"file":"create-post.dto.js","sourceRoot":"","sources":["../../../../src/posts/dto/create-post.dto.ts"],"names":[],"mappings":";;;AAAA,MAAa,aAAa;IACxB,KAAK,CAAS;IACd,OAAO,CAAU;IACjB,MAAM,CAAU;IAChB,SAAS,CAAW;CACrB;AALD,sCAKC"}
