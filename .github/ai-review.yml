@@ -22,9 +22,9 @@ jobs:
         with:
           filters: |
             fe:
-              - 'frontend/**'
+              - 'apps/frontend/**'
             be:
-              - 'backend/**'
+              - 'apps/backend/**'
 
   review-fe:
     needs: detect-changes
@@ -42,9 +42,9 @@ jobs:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           CODE_RULES_PATH: ".github/CODE_RULES_FE.md"
-          FILES_PATH_PREFIX: "frontend/"
+          FILES_PATH_PREFIX: "apps/frontend/"
           PROJECT_NAME: "Frontend"
-        run: node pr-review.mjs
+        run: node scripts/pr_review.mjs
 
   review-be:
     needs: detect-changes
@@ -62,6 +62,6 @@ jobs:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           CODE_RULES_PATH: ".github/CODE_RULES_BE.md"
-          FILES_PATH_PREFIX: "backend/"
+          FILES_PATH_PREFIX: "apps/backend/"
           PROJECT_NAME: "Backend"
-        run: node pr-review.mjs
+        run: node scripts/pr_review.mjs
