@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PostsApi, type Post, type PostInput } from './lib/api'
+import { ShareButton, useOpenSharedPost } from './features/posts'
 
 const emptyForm: PostInput = { title: '', content: '', author: '', published: false }
 
@@ -117,6 +118,9 @@ function App() {
     }
   }
 
+  // Mở chi tiết theo link chia sẻ ?post=<id> khi tải trang
+  useOpenSharedPost(showDetail)
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="mx-auto max-w-5xl px-4 py-10">
@@ -203,12 +207,18 @@ function App() {
               <div className="mt-6 rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/40">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="font-semibold">Chi tiết #{detail.id}</h3>
-                  <button
-                    onClick={() => setDetail(null)}
-                    className="text-xs text-slate-500 hover:underline"
-                  >
-                    đóng
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <ShareButton
+                      post={detail}
+                      className="text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+                    />
+                    <button
+                      onClick={() => setDetail(null)}
+                      className="text-xs text-slate-500 hover:underline"
+                    >
+                      đóng
+                    </button>
+                  </div>
                 </div>
                 <p className="text-base font-medium">{detail.title}</p>
                 <div className="mt-2 flex items-center gap-2">
@@ -302,6 +312,10 @@ function App() {
                       >
                         Xem
                       </button>
+                      <ShareButton
+                        post={post}
+                        className="rounded-md border border-sky-300 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-950/40"
+                      />
                       <button
                         onClick={() => startEdit(post)}
                         className="rounded-md border border-amber-300 px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
