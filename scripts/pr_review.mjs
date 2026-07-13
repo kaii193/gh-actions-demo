@@ -31,6 +31,17 @@ const REQUEST_TIMEOUT_MS = 90_000; // abort a hung model request
 const MAX_OUTPUT_TOKENS = 600; // the verdict JSON is tiny; cap output
 const MAX_RETRIES = 2; // retries on 429 / 5xx / network errors (so up to 3 attempts)
 
+// ---------- Pre-flight guard (runs before any model call) ----------
+// Hard limits that block a PR outright instead of spending tokens on a review that
+// would be low quality anyway. Overridable via env; set any limit to 0 to disable it.
+const intEnv = (name, def) => {
+    const v = Number.parseInt(process.env[name] ?? "", 10);
+    return Number.isFinite(v) && v >= 0 ? v : def;
+};
+const GUARD_MAX_FILES = intEnv("GUARD_MAX_FILES", 40); // number of reviewed files
+const GUARD_MAX_CHANGED_LINES = intEnv("GUARD_MAX_CHANGED_LINES", 1500); // additions + deletions
+const GUARD_MAX_PATCH_CHARS = intEnv("GUARD_MAX_PATCH_CHARS", 200_000); // total patch size
+
 // Reviewers to consult. Both endpoints speak the OpenAI-compatible chat format,
 // so a single caller (callChatModel) works for all of them. Add or remove entries
 // here to change the panel — the rest of the script adapts automatically.
@@ -287,6 +298,42 @@ function formatComment(reviews, finalVerdict) {
     return body;
 }
 
+// ---------- Pre-flight guard ----------
+
+// Inspect the (already prefix-filtered) file set and decide whether it is small
+// enough to review. Returns { ok, stats, violations }.
+function checkGuards(files) {
+    const stats = {
+        files: files.length,
+        changedLines: files.reduce((sum, f) => sum + (f.additions ?? 0) + (f.deletions ?? 0), 0),
+        patchChars: files.reduce((sum, f) => sum + (f.patch?.length ?? 0), 0),
+    };
+
+    const violations = [];
+    if (GUARD_MAX_FILES && stats.files > GUARD_MAX_FILES) {
+        violations.push(`Too many changed files: ${stats.files} (limit ${GUARD_MAX_FILES}).`);
+    }
+    if (GUARD_MAX_CHANGED_LINES && stats.changedLines > GUARD_MAX_CHANGED_LINES) {
+        violations.push(`Too many changed lines: ${stats.changedLines} (limit ${GUARD_MAX_CHANGED_LINES}).`);
+    }
+    if (GUARD_MAX_PATCH_CHARS && stats.patchChars > GUARD_MAX_PATCH_CHARS) {
+        violations.push(`Diff too large: ${stats.patchChars} chars (limit ${GUARD_MAX_PATCH_CHARS}).`);
+    }
+
+    return { ok: violations.length === 0, stats, violations };
+}
+
+function formatGuardComment(violations) {
+    const titleSuffix = PROJECT_NAME ? ` — ${PROJECT_NAME}` : "";
+    let body = `${COMMENT_MARKER}\n## 🤖 AI Code Review${titleSuffix}\n\n`;
+    body += `**Final verdict: REJECT**\n\n`;
+    body += `⛔ **This PR is too large to be reviewed automatically.**\n\n`;
+    body += violations.map((v) => `- ${v}`).join("\n") + "\n\n";
+    body += `Please split it into smaller, focused PRs so the automated review can run.\n`;
+    body += `\n---\n_Blocked by the pre-flight guard before any AI reviewer was called._`;
+    return body;
+}
+
 // Update our previous comment if present, otherwise create one (#9).
 async function upsertComment(owner, repo, issue_number, body) {
     const comments = await octokit.paginate(octokit.rest.issues.listComments, {
@@ -334,6 +381,18 @@ async function main() {
     }
 
     console.log("PR:", pr.title);
+
+    // Pre-flight guard: block oversized PRs before spending any tokens on the models.
+    const guard = checkGuards(files);
+    console.log(
+        `Guard stats: files=${guard.stats.files}, changedLines=${guard.stats.changedLines}, patchChars=${guard.stats.patchChars}`,
+    );
+    if (!guard.ok) {
+        console.error("Pre-flight guard failed:\n- " + guard.violations.join("\n- "));
+        await upsertComment(owner, repo, pull_number, formatGuardComment(guard.violations));
+        process.exit(1);
+    }
+
     console.log(`Reviewing ${files.length} file(s).`);
 
     const prompt = buildPrompt(pr, files, readCodeRules());
