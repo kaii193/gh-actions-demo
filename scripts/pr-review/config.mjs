@@ -23,7 +23,9 @@ export const MAX_TOTAL_PATCH_CHARS = 60_000; // across all patches combined
 
 // Network behaviour for model calls.
 export const REQUEST_TIMEOUT_MS = 90_000; // abort a hung request
-export const MAX_OUTPUT_TOKENS = 600; // the verdict JSON is tiny
+// The verdict JSON is tiny, but reasoning models (e.g. GLM-4.5) spend tokens on
+// hidden "thinking" first; too low a cap leaves empty content. Keep headroom.
+export const MAX_OUTPUT_TOKENS = 2000;
 export const MAX_RETRIES = 2; // on 429 / 5xx / network errors (up to 3 attempts)
 
 // Pre-flight guard: block oversized PRs before spending tokens. Set 0 to disable.
@@ -41,6 +43,9 @@ export const REVIEWERS = [
         url: "https://api.z.ai/api/coding/paas/v4/chat/completions",
         apiKey: process.env.ZHIPU_API_KEY,
         model: "glm-4.5", // adjust to whichever GLM model you have access to
+        // GLM-4.5 "thinks" by default and can return empty content; disable it so
+        // the model spends its budget on the JSON verdict, not hidden reasoning.
+        extraBody: { thinking: { type: "disabled" } },
     },
     {
         name: "DeepSeek",

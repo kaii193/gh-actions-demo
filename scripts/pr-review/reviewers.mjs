@@ -37,7 +37,7 @@ export function reviewerStatus(review) {
 // Calls one OpenAI-compatible chat endpoint. Never throws: any failure is returned
 // as { error } so a single flaky model cannot crash the whole review. Retries on
 // 429 / 5xx / network errors with backoff, and aborts hung requests via a timeout.
-export async function callChatModel({ name, url, apiKey, model }, prompt) {
+export async function callChatModel({ name, url, apiKey, model, extraBody }, prompt) {
     if (!apiKey) {
         return { name, raw: "", parsed: null, error: "Missing API key" };
     }
@@ -59,6 +59,7 @@ export async function callChatModel({ name, url, apiKey, model }, prompt) {
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0.2,
                     max_tokens: MAX_OUTPUT_TOKENS,
+                    ...extraBody, // per-reviewer extras (e.g. disable GLM thinking)
                 }),
                 signal: ac.signal,
             });
@@ -76,7 +77,10 @@ export async function callChatModel({ name, url, apiKey, model }, prompt) {
             }
 
             const data = await res.json();
-            const text = data?.choices?.[0]?.message?.content ?? "";
+            const message = data?.choices?.[0]?.message;
+            // Some reasoning models leave `content` empty and put text in
+            // `reasoning_content`; fall back to it so we can still parse a verdict.
+            const text = message?.content || message?.reasoning_content || "";
             return { name, raw: text, parsed: safeParseJSON(text) };
         } catch (e) {
             // Network error or abort (timeout) — retryable.
