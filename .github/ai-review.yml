@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install @actions/github
+      - run: npm install @actions/github@6
       - name: Run AI review (Frontend)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install @actions/github
+      - run: npm install @actions/github@6
       - name: Run AI review (Backend)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
