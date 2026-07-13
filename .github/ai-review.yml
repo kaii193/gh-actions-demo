@@ -1,0 +1,67 @@
+name: AI PR Review (GLM + DeepSeek)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      fe: ${{ steps.filter.outputs.fe }}
+      be: ${{ steps.filter.outputs.be }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            fe:
+              - 'frontend/**'
+            be:
+              - 'backend/**'
+
+  review-fe:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.fe == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install @actions/github
+      - name: Run AI review (Frontend)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          CODE_RULES_PATH: ".github/CODE_RULES_FE.md"
+          FILES_PATH_PREFIX: "frontend/"
+          PROJECT_NAME: "Frontend"
+        run: node pr-review.mjs
+
+  review-be:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.be == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install @actions/github
+      - name: Run AI review (Backend)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          CODE_RULES_PATH: ".github/CODE_RULES_BE.md"
+          FILES_PATH_PREFIX: "backend/"
+          PROJECT_NAME: "Backend"
+        run: node pr-review.mjs
