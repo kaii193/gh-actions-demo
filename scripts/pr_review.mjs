@@ -59,6 +59,17 @@ async function main() {
     const prompt = buildPrompt(pr, files, readCodeRules());
     const reviews = await Promise.all(REVIEWERS.map((reviewer) => callChatModel(reviewer, prompt)));
 
+    // Log each reviewer's outcome so the Actions log alone explains a REJECT
+    // (the full reasons still go into the PR comment).
+    for (const r of reviews) {
+        const status = reviewerStatus(r);
+        const detail = r.error || r.parsed?.summary || (r.raw ? "unparseable response" : "");
+        console.log(`Reviewer ${r.name}: ${status}${detail ? ` — ${detail}` : ""}`);
+        if (status === "REJECT" && r.parsed?.reasons?.length) {
+            for (const reason of r.parsed.reasons) console.log(`    • ${reason}`);
+        }
+    }
+
     // Only PASS when every reviewer explicitly says PASS. A missing, unparseable,
     // timed-out, or REJECT verdict from any reviewer blocks the PR (fail-closed).
     const finalVerdict = reviews.every((r) => reviewerStatus(r) === "PASS") ? "PASS" : "REJECT";
