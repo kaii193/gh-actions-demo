@@ -40,6 +40,7 @@ function App() {
   const [saving, setSaving] = useState(false)
 
   const [detail, setDetail] = useState<Post | null>(null)
+  const [sharedId, setSharedId] = useState<number | null>(null)
 
   // ---- READ: load list ----
   const loadPosts = async () => {
@@ -116,6 +117,31 @@ function App() {
       setError('Không tải được chi tiết.')
     }
   }
+
+  // ---- SHARE ----
+  const buildShareUrl = (id: number) =>
+    `${window.location.origin}${window.location.pathname}?post=${id}`
+
+  const handleShare = async (post: Post) => {
+    const url = buildShareUrl(post.id)
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.title, text: post.content ?? post.title, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        setSharedId(post.id)
+        setTimeout(() => setSharedId((current) => (current === post.id ? null : current)), 2000)
+      }
+    } catch {
+      // Người dùng huỷ hộp chia sẻ hoặc clipboard bị chặn — bỏ qua
+    }
+  }
+
+  // Mở chi tiết theo link chia sẻ ?post=<id> khi tải trang
+  useEffect(() => {
+    const sharedPostId = Number(new URLSearchParams(window.location.search).get('post'))
+    if (sharedPostId) showDetail(sharedPostId)
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -203,12 +229,20 @@ function App() {
               <div className="mt-6 rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/40">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="font-semibold">Chi tiết #{detail.id}</h3>
-                  <button
-                    onClick={() => setDetail(null)}
-                    className="text-xs text-slate-500 hover:underline"
-                  >
-                    đóng
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleShare(detail)}
+                      className="text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+                    >
+                      {sharedId === detail.id ? '✓ Đã copy link' : '🔗 Chia sẻ'}
+                    </button>
+                    <button
+                      onClick={() => setDetail(null)}
+                      className="text-xs text-slate-500 hover:underline"
+                    >
+                      đóng
+                    </button>
+                  </div>
                 </div>
                 <p className="text-base font-medium">{detail.title}</p>
                 <div className="mt-2 flex items-center gap-2">
@@ -301,6 +335,12 @@ function App() {
                         className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
                       >
                         Xem
+                      </button>
+                      <button
+                        onClick={() => handleShare(post)}
+                        className="rounded-md border border-sky-300 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:text-sky-400 dark:hover:bg-sky-950/40"
+                      >
+                        {sharedId === post.id ? '✓ Đã copy link' : '🔗 Chia sẻ'}
                       </button>
                       <button
                         onClick={() => startEdit(post)}
