@@ -1,7 +1,34 @@
 import { useEffect, useState } from 'react'
 import { PostsApi, type Post, type PostInput } from './lib/api'
 
-const emptyForm: PostInput = { title: '', content: '', published: false }
+const emptyForm: PostInput = { title: '', content: '', author: '', published: false }
+
+// Sinh initials từ tên tác giả cho avatar
+const initials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(-2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('') || '?'
+
+// Bảng màu avatar ổn định theo tên
+const avatarColors = [
+  'bg-rose-500',
+  'bg-orange-500',
+  'bg-amber-500',
+  'bg-emerald-500',
+  'bg-teal-500',
+  'bg-sky-500',
+  'bg-indigo-500',
+  'bg-violet-500',
+  'bg-fuchsia-500',
+]
+const avatarColor = (name: string) => {
+  let sum = 0
+  for (const ch of name) sum += ch.charCodeAt(0)
+  return avatarColors[sum % avatarColors.length]
+}
 
 function App() {
   const [posts, setPosts] = useState<Post[]>([])
@@ -56,6 +83,7 @@ function App() {
     setForm({
       title: post.title,
       content: post.content ?? '',
+      author: post.author ?? '',
       published: post.published,
     })
     setDetail(null)
@@ -132,6 +160,15 @@ function App() {
                   className="w-full resize-y rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-700"
                 />
               </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Tác giả</label>
+                <input
+                  value={form.author ?? ''}
+                  onChange={(e) => setForm({ ...form, author: e.target.value })}
+                  placeholder="Tên tác giả (để trống = Ẩn danh)"
+                  className="w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-700"
+                />
+              </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -174,7 +211,19 @@ function App() {
                   </button>
                 </div>
                 <p className="text-base font-medium">{detail.title}</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
+                <div className="mt-2 flex items-center gap-2">
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold text-white ${avatarColor(
+                      detail.author,
+                    )}`}
+                  >
+                    {initials(detail.author)}
+                  </span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {detail.author}
+                  </span>
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
                   {detail.content ?? <em className="text-slate-400">(không có nội dung)</em>}
                 </p>
                 <p className="mt-3 text-xs text-slate-500">
@@ -206,30 +255,46 @@ function App() {
                 {posts.map((post) => (
                   <li
                     key={post.id}
-                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                    className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-800"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-slate-400">
-                            #{post.id}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              post.published
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                            }`}
-                          >
-                            {post.published ? 'Published' : 'Draft'}
-                          </span>
-                        </div>
-                        <h3 className="truncate font-medium">{post.title}</h3>
-                        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                          {post.content ?? '(không có nội dung)'}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-mono text-slate-400">#{post.id}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          post.published
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}
+                      >
+                        {post.published ? 'Published' : 'Draft'}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-1.5 line-clamp-1 text-base font-semibold tracking-tight transition group-hover:text-sky-600 dark:group-hover:text-sky-400">
+                      {post.title}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                      {post.content ?? '(không có nội dung)'}
+                    </p>
+
+                    <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${avatarColor(
+                          post.author,
+                        )}`}
+                      >
+                        {initials(post.author)}
+                      </span>
+                      <div className="min-w-0 leading-tight">
+                        <p className="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                          {post.author}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {new Date(post.createdAt).toLocaleDateString('vi-VN')}
                         </p>
                       </div>
                     </div>
+
                     <div className="mt-3 flex gap-2">
                       <button
                         onClick={() => showDetail(post.id)}

@@ -4,6 +4,7 @@ export interface Post {
   id: number
   title: string
   content: string | null
+  author: string
   published: boolean
   createdAt: string
   updatedAt: string
@@ -12,6 +13,7 @@ export interface Post {
 export interface PostInput {
   title: string
   content?: string
+  author?: string
   published?: boolean
 }
 

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(npm *)"
+      "PowerShell(npm *)",
+      "Bash(mkdir -p .github/workflows)",
+      "Bash(git mv *)"
     ]
   }
 }
