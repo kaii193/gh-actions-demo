@@ -1,7 +1,17 @@
-import { COMMENT_MARKER, PROJECT_NAME } from "./config.mjs";
+import { COMMENT_MARKER, PROJECT_NAME, FILES_PATH_PREFIX } from "./config.mjs";
 import { normalizeVerdict, reviewerStatus } from "./reviewers.mjs";
 
-const titleSuffix = PROJECT_NAME ? ` — ${PROJECT_NAME}` : "";
+// Human-friendly scope so Frontend vs Backend comments are unmistakable.
+const scopeLabel = PROJECT_NAME || (FILES_PATH_PREFIX ? FILES_PATH_PREFIX : "All files");
+
+// Shared comment header that leads prominently with the review scope (FE/BE) and
+// the path it covers, so two comments on the same PR are easy to tell apart.
+function header(panel) {
+    let out = `${COMMENT_MARKER}\n## 🤖 AI Code Review — ${scopeLabel}\n\n`;
+    out += `> **Scope:** \`${FILES_PATH_PREFIX || "*"}\``;
+    if (panel) out += ` · **Reviewers:** ${panel}`;
+    return out + `\n\n`;
+}
 
 function formatReview(review) {
     const verdict = review.parsed ? normalizeVerdict(review.parsed.verdict) || "UNKNOWN" : reviewerStatus(review);
@@ -26,7 +36,7 @@ export function formatComment(reviews, finalVerdict) {
     const panel = reviews.map((r) => r.name.split(" ")[0]).join(" + ");
     const statuses = reviews.map(reviewerStatus);
 
-    let body = `${COMMENT_MARKER}\n## 🤖 AI Code Review (${panel})${titleSuffix}\n\n`;
+    let body = header(panel);
     body += `**Final verdict: ${finalVerdict}**\n\n`;
     body += reviews.map(formatReview).join("\n");
 
@@ -45,7 +55,7 @@ export function formatComment(reviews, finalVerdict) {
 
 // Comment posted when the pre-flight guard blocks the PR (no models called).
 export function formatGuardComment(violations) {
-    let body = `${COMMENT_MARKER}\n## 🤖 AI Code Review${titleSuffix}\n\n`;
+    let body = header();
     body += `**Final verdict: REJECT**\n\n`;
     body += `⛔ **This PR is too large to be reviewed automatically.**\n\n`;
     body += violations.map((v) => `- ${v}`).join("\n") + "\n\n";
